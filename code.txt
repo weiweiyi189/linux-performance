@@ -1,28 +1,15 @@
-import re
-from pyecharts import Pie
+free_output = run_command("free -m")
+    memory_lines = free_output.split('\n')
 
-def visualize_cpu_usage():
-    """
-    可视化系统CPU占用
-    """
-    # 执行top命令并获取CPU占用数据
-    top_output = run_command("top -bn1 | grep 'Cpu(s)'")
-    cpu_usage_line = top_output.strip()
-    
-    # 使用正则表达式提取CPU占用百分比
-    cpu_pattern = re.compile(r'%Cpu\(s\):\s+(\d+\.\d+)\sus,\s+(\d+\.\d+)\ssy,\s+(\d+\.\d+)\sni,\s+(\d+\.\d+)\sid,\s+(\d+\.\d+)\swa,\s+(\d+\.\d+)\shi,\s+(\d+\.\d+)\ssi,\s+(\d+\.\d+)\sst')
-    cpu_match = cpu_pattern.match(cpu_usage_line)
-    if cpu_match:
-        us, sy, ni, idle, wa, hi, si, st = map(float, cpu_match.groups())
-    else:
-        raise RuntimeError("Failed to parse CPU usage data")
+    # Parse memory usage data
+    total_memory_line = memory_lines[1].split()
+    used_memory_line = memory_lines[2].split()
+    total_memory = int(total_memory_line[1])
+    used_memory = int(used_memory_line[2])
+    free_memory = total_memory - used_memory
 
-    # 绘制饼状图
-    pie = Pie("CPU Usage Breakdown")
-    pie.add("", ["User", "System", "Nice", "Idle", "IO Wait", "Hardware Interrupts", "Software Interrupts", "Steal"],
-            [us, sy, ni, idle, wa, hi, si, st],
+    # Visualize memory usage breakdown in a pie chart
+    pie = Pie("Memory Usage Breakdown")
+    pie.add("", ["Used Memory", "Free Memory"], [used_memory, free_memory],
             radius=["40%", "75%"], center=["50%", "50%"], rosetype="radius")
-    pie.render("cpu_usage.html")
-
-if __name__ == "__main__":
-    visualize_cpu_usage()
+    pie.render("memory_usage.html")
