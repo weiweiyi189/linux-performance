@@ -1,0 +1,51 @@
+import subprocess
+from pyecharts import Bar
+
+def run_command(command):
+    """
+    执行Shell命令并返回输出结果
+    """
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        return result.stdout
+    else:
+        raise RuntimeError(f"Command '{command}' failed with error: {result.stderr}")
+
+def parse_top_output(output):
+    """
+    解析top命令的输出，提取进程信息
+    """
+    lines = output.split('\n')
+    # 跳过前几行不相关的输出
+    lines = lines[7:]
+    processes = []
+    for line in lines:
+        if line.strip():
+            parts = line.split()
+            process = {
+                "pid": parts[0],
+                "user": parts[1],
+                "cpu": parts[8],
+                "memory": parts[9],
+                "command": " ".join(parts[11:])
+            }
+            processes.append(process)
+    return processes
+
+def visualize_top_processes(processes):
+    """
+    使用pyecharts可视化top进程信息
+    """
+    pids = [process["pid"] for process in processes]
+    cpu_usages = [float(process["cpu"]) for process in processes]
+    bar = Bar("Top Processes CPU Usage")
+    bar.add("CPU Usage", pids, cpu_usages)
+    bar.render("top_processes_cpu_usage.html")
+
+if __name__ == "__main__":
+    # 执行top命令获取进程信息
+    top_output = run_command("top -b -n 1")
+    # 解析top命令的输出
+    processes = parse_top_output(top_output)
+    # 可视化top进程CPU使用情况
+    visualize_top_processes(processes)
