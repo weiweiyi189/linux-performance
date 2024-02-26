@@ -1,15 +1,38 @@
-free_output = run_command("free -m")
-    memory_lines = free_output.split('\n')
+import subprocess
+from pyecharts import Pie
 
-    # Parse memory usage data
-    total_memory_line = memory_lines[1].split()
-    used_memory_line = memory_lines[2].split()
-    total_memory = int(total_memory_line[1])
-    used_memory = int(used_memory_line[2])
-    free_memory = total_memory - used_memory
+def run_command(command):
+    """
+    执行Shell命令并返回输出结果
+    """
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode == 0:
+        return result.stdout
+    else:
+        raise RuntimeError(f"Command '{command}' failed with error: {result.stderr}")
 
-    # Visualize memory usage breakdown in a pie chart
+def visualize_memory_usage():
+    """
+    可视化内存使用情况
+    """
+    # 执行free命令并获取内存使用数据
+    free_output = run_command("free -m | grep Mem")
+    total_memory, used_memory, free_memory, shared_memory, buffer_cache_memory, _ = map(int, free_output.split()[1:])
+
+    # 计算内存使用情况的百分比
+    total_memory = total_memory
+    memory_usage = {
+        "Used Memory": used_memory,
+        "Shared Memory": shared_memory,
+        "Buffer/Cache Memory": buffer_cache_memory,
+        "Free Memory": free_memory
+    }
+
+    # 可视化内存使用情况的饼状图
     pie = Pie("Memory Usage Breakdown")
-    pie.add("", ["Used Memory", "Free Memory"], [used_memory, free_memory],
+    pie.add("", list(memory_usage.keys()), list(memory_usage.values()),
             radius=["40%", "75%"], center=["50%", "50%"], rosetype="radius")
     pie.render("memory_usage.html")
+
+if __name__ == "__main__":
+    visualize_memory_usage()
