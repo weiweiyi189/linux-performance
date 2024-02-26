@@ -1,42 +1,28 @@
-import subprocess
-from pyecharts import Bar, Pie
+import re
+from pyecharts import Pie
 
-def run_command(command):
+def visualize_cpu_usage():
     """
-    执行Shell命令并返回输出结果
+    可视化系统CPU占用
     """
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if result.returncode == 0:
-        return result.stdout
-    else:
-        raise RuntimeError(f"Command '{command}' failed with error: {result.stderr}")
-
-def visualize_system_info():
-    """
-    可视化系统CPU占用和系统内存占用
-    """
-    # 获取系统CPU占用
+    # 执行top命令并获取CPU占用数据
     top_output = run_command("top -bn1 | grep 'Cpu(s)'")
-    cpu_percent = float(top_output.split(',')[0].split(' ')[-1])
+    cpu_usage_line = top_output.strip()
+    
+    # 使用正则表达式提取CPU占用百分比
+    cpu_pattern = re.compile(r'%Cpu\(s\):\s+(\d+\.\d+)\sus,\s+(\d+\.\d+)\ssy,\s+(\d+\.\d+)\sni,\s+(\d+\.\d+)\sid,\s+(\d+\.\d+)\swa,\s+(\d+\.\d+)\shi,\s+(\d+\.\d+)\ssi,\s+(\d+\.\d+)\sst')
+    cpu_match = cpu_pattern.match(cpu_usage_line)
+    if cpu_match:
+        us, sy, ni, idle, wa, hi, si, st = map(float, cpu_match.groups())
+    else:
+        raise RuntimeError("Failed to parse CPU usage data")
 
-    # 获取系统内存占用
-    free_output = run_command("free -m | grep Mem")
-    total_memory, used_memory = map(int, free_output.split()[1:3])
-    memory_percent = (used_memory / total_memory) * 100
-
-    # 绘制系统CPU占用柱状图
-    bar = Bar("System CPU and Memory Usage")
-    bar.add_xaxis(["CPU Usage", "Memory Usage"])
-    bar.add_yaxis("Usage", [cpu_percent, memory_percent])
-
-    # 绘制系统内存占用饼状图
-    pie = Pie("System Memory Usage")
-    pie.add("Memory Usage", ["Used Memory", "Free Memory"], [used_memory, total_memory - used_memory], 
-            radius=["40%", "75%"], center=["65%", "50%"], rosetype="radius")
-
-    # 合并图表并保存到同一个HTML文件中
-    bar.overlap(pie)
-    bar.render("system_info.html")
+    # 绘制饼状图
+    pie = Pie("CPU Usage Breakdown")
+    pie.add("", ["User", "System", "Nice", "Idle", "IO Wait", "Hardware Interrupts", "Software Interrupts", "Steal"],
+            [us, sy, ni, idle, wa, hi, si, st],
+            radius=["40%", "75%"], center=["50%", "50%"], rosetype="radius")
+    pie.render("cpu_usage.html")
 
 if __name__ == "__main__":
-    visualize_system_info()
+    visualize_cpu_usage()
