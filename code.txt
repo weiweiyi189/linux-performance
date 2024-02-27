@@ -1,5 +1,6 @@
 from pyecharts import options as opts
 from pyecharts.charts import Bar
+from pyecharts.commons.utils import JsCode
 import subprocess
 
 # 执行Shell命令并返回输出结果
@@ -27,36 +28,36 @@ def visualize_top_processes():
     pids, cpu_usages, mem_usages = zip(*processes)
     
     # 创建柱状图
-    bar = (
-        Bar()
-        .add_xaxis(pids)
-        .add_yaxis("CPU Usage", cpu_usages)
-        .add_yaxis("Memory Usage", mem_usages)
-        .set_global_opts(
-            title_opts=opts.TitleOpts(title="Top Processes CPU and Memory Usage"),
-            toolbox_opts=opts.ToolboxOpts(orient="vertical", pos_top="top", feature={"save_as_image": {}}),
-            legend_opts=opts.LegendOpts(pos_right="right", pos_top="middle"),
-            datazoom_opts=[opts.DataZoomOpts(), opts.DataZoomOpts(type_="inside")],
-        )
-        .set_series_opts(
-            # 添加点击事件，对数据进行排序
-            emit_event=True,
-            onclick="""
-                function(params) {
-                    var seriesName = params.componentSubType;
-                    var chart = params.chart;
-                    var option = chart.getOption();
-                    var data = option.series.find(item => item.name === seriesName).data;
-                    data.sort(function(a, b) {
-                        return a.value - b.value;
-                    });
-                    option.series.find(item => item.name === seriesName).data = data;
-                    chart.setOption(option);
-                }
+    bar = Bar()
+    bar.add_xaxis(pids)
+    bar.add_yaxis("CPU Usage", cpu_usages)
+    bar.add_yaxis("Memory Usage", mem_usages)
+
+    # 添加点击事件
+    bar.set_global_opts(
+        title_opts=opts.TitleOpts(title="Top Processes CPU and Memory Usage"),
+        toolbox_opts=opts.ToolboxOpts(orient="vertical", pos_top="top", feature={"save_as_image": {}}),
+        legend_opts=opts.LegendOpts(pos_right="right", pos_top="middle"),
+        datazoom_opts=[opts.DataZoomOpts(), opts.DataZoomOpts(type_="inside")],
+        # 添加排序功能的点击事件
+        onclick=JsCode(
             """
-        )
+            function(params) {
+                var chart = params.chart;
+                var option = chart.getOption();
+                var seriesIndex = params.seriesIndex;
+                var seriesName = option.series[seriesIndex].name;
+                var data = option.series[seriesIndex].data;
+                data.sort(function(a, b) {
+                    return a.value[1] - b.value[1];
+                });
+                option.series[seriesIndex].data = data;
+                chart.setOption(option);
+            }
+            """
+        ),
     )
-    
+
     # 生成可视化图表
     bar.render("top_processes_cpu_memory_usage.html")
 
