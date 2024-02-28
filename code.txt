@@ -1,2 +1,5 @@
-cpu_pattern = re.compile(r'%Cpu\(s\):\s+(\d+\.\d+)\s+us,\s+(\d+\.\d+)\s+sy,\s+(\d+\.\d+)\s+ni,\s+(\d+\.\d+)\s+id,\s+(\d+\.\d+)\s+wa,\s+(\d+\.\d+)\s+hi,\s+(\d+\.\d+)\s+si,\s+(\d+\.\d+)\s+st')
-cpu_match = cpu_pattern.search(top_output)
+load_pattern = re.compile(r'load average:\s+([\d.]+),\s+([\d.]+),\s+([\d.]+)')
+load_match = load_pattern.search(top_output)
+
+if load_match:
+    load_1min, load_5min, load_15min = load_match.groups()
